@@ -5,8 +5,7 @@ from string import Template
 def load_config(config_path: str) -> dict:
     with open(config_path, 'r') as file:
         config = yaml.safe_load(file)
-    config = substitute_env_variables(config)
-    return config
+    return substitute_env_variables(config)
 
 def substitute_env_variables(config):
     if isinstance(config, dict):
@@ -18,6 +17,7 @@ def substitute_env_variables(config):
         try:
             return template.substitute(os.environ)
         except KeyError as e:
-            raise ValueError(f"Missing environment variable for config: {e}")
+            print(f"Warning: Missing environment variable for config: {e}")
+            return config
     else:
         return config

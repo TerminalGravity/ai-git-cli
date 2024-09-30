@@ -1,162 +1,122 @@
 import sys
+import git
 from rich.console import Console
 from rich.table import Table
 from rich.prompt import Prompt
 from rich.panel import Panel
 from rich.text import Text
-from ai_git_commit.config import Config, ConfigError
-from ai_git_commit.ai_grouping import AIGrouping
-from ai_git_commit.commit_message_generator import CommitMessageGenerator
-from ai_git_commit.commit_automator import CommitAutomator
-from ai_git_commit.diff_analyzer import DiffAnalyzer  # Assuming this exists
+from ai_git_cli.config import load_config
+from ai_git_cli.grouping import group_changes
+from ai_git_cli.commit_message import generate_commit_message
 
 def commit_command(args):
     console = Console()
-    try:
-        config = Config()
-    except ConfigError as e:
-        console.print(f"[bold red]Configuration Error: {e}[/bold red]")
-        sys.exit(1)
+    config = load_config('configs/config.yaml')
+    repo = git.Repo('.')
     
-    analyzer = DiffAnalyzer(config)
-    diffs = analyzer.get_unstaged_diffs()
+    # Get unstaged changes
+    diffs = repo.index.diff(None)
     if not diffs:
         console.print("[bold red]No unstaged changes to commit.[/bold red]")
-        sys.exit(0)
+        return
 
+    # Display unstaged changes
     console.print("[bold]Unstaged changes:[/bold]")
-    for file, diff in diffs.items():
-        console.print(Panel(diff, title=file, expand=False))
+    changes = []
+    for diff in diffs:
+        change_type = 'Modified' if diff.change_type == 'M' else diff.change_type
+        changes.append({'path': diff.a_path, 'change_type': change_type})
+        console.print(Panel(str(diff), title=diff.a_path, expand=False))
 
-    grouping = AIGrouping(config)
-    with console.status("[bold green]Analyzing changes...[/bold green]"):
-        groups = grouping.group_diffs(diffs)
+    # Group changes
+    with console.status("[bold green]Analyzing and grouping changes...[/bold green]"):
+        groups = group_changes(changes, config)
 
-    generator = CommitMessageGenerator(config)
+    # Generate commit messages
+    with console.status("[bold green]Generating commit messages...[/bold green]"):
+        commit_messages = generate_commit_message(groups, config)
+
+    # Display proposed commits
     table = Table(title="Proposed Commits", show_lines=True)
     table.add_column("Group", style="cyan", no_wrap=True)
     table.add_column("Files", style="magenta", overflow="fold")
-    table.add_column("Change Count", style="yellow", justify="right")
     table.add_column("Commit Message", style="green", overflow="fold")
 
-    for idx, group in enumerate(groups, 1):
-        group['diffs'] = {file: diffs[file] for file in group['files'] if file in diffs}
-        suggested_message = generator.generate_message(group['diffs'])
-        change_count = sum(len(diff.splitlines()) for diff in group['diffs'].values())
+    for idx, commit in enumerate(commit_messages, 1):
         table.add_row(
             f"[bold blue]{idx}[/bold blue]",
-            ", ".join(group['files']),
-            str(change_count),
-            suggested_message
+            ", ".join(commit['files']),
+            commit['message']
         )
-        group['message'] = suggested_message
 
     console.print(table)
 
     # Interactive Review
-    for group in groups.copy():
-        console.print(f"\n[bold cyan]Commit for files:[/bold cyan] {', '.join(group['files'])}")
-        console.print(f"[bold green]Suggested Message:[/bold green] {group['message']}")
+    for commit in commit_messages.copy():
+        console.print(f"\n[bold cyan]Commit for files:[/bold cyan] {', '.join(commit['files'])}")
+        console.print(f"[bold green]Suggested Message:[/bold green] {commit['message']}")
         action = Prompt.ask("Choose action", choices=["accept", "edit", "skip"], default="accept").lower()
         if action == "accept":
             continue
         elif action == "edit":
             new_message = Prompt.ask("Enter your commit message")
-            group['message'] = new_message
+            commit['message'] = new_message
         elif action == "skip":
-            groups.remove(group)
+            commit_messages.remove(commit)
 
-    # Display final commits in a table
-    final_table = Table(title="Final Commits", show_lines=True)
-    final_table.add_column("Group", style="cyan", no_wrap=True)
-    final_table.add_column("Files", style="magenta", overflow="fold")
-    final_table.add_column("Change Count", style="yellow", justify="right")
-    final_table.add_column("Commit Message", style="green", overflow="fold")
-    
-    for idx, group in enumerate(groups, 1):
-        change_count = sum(len(diff.splitlines()) for diff in group['diffs'].values())
-        final_table.add_row(
-            f"[bold blue]{idx}[/bold blue]",
-            ", ".join(group['files']),
-            str(change_count),
-            group['message']
-        )
-
-    console.print(final_table)
-
+    # Confirm and execute commits
     proceed = Prompt.ask("\nProceed with these commits?", choices=["y", "n"], default="y").lower()
     if proceed != 'y':
         console.print("[bold red]Commit process aborted.[/bold red]")
-        sys.exit(0)
+        return
 
     if args.dry_run:
         console.print("[bold yellow]Dry run enabled. No commits were created.[/bold yellow]")
-        sys.exit(0)
+        return
 
-    automator = CommitAutomator(config)
+    # Execute commits
     with console.status("[bold green]Creating commits...[/bold green]"):
-        automator.commit_groups(groups)
-    console.print("[bold green]Commits created successfully.[/bold green]")
+        for commit in commit_messages:
+            repo.index.add(commit['files'])
+            repo.index.commit(commit['message'])
 
-    # Amend history if needed
-    while True:
-        amend_history = Prompt.ask("Do you want to amend the commit history?", choices=["y", "n"], default="n").lower()
-        if amend_history in ['y', 'yes']:
-            while True:
-                num_commits_input = Prompt.ask("How many commits back do you want to amend?").strip()
-                if not num_commits_input:
-                    console.print("[yellow]No input provided. Skipping amend.[/yellow]")
-                    break
-                try:
-                    num_commits = int(num_commits_input)
-                    automator.amend_history(num_commits)
-                    break
-                except ValueError:
-                    console.print("[red]Please enter a valid number.[/red]")
-            break
-        elif amend_history in ['n', 'no']:
-            break
-        else:
-            console.print("[red]Invalid input. Please enter 'y' or 'n'.[/red]")
+    console.print("[bold green]Commits created successfully.[/bold green]")
 
 def analyze_command(args):
     console = Console()
-    try:
-        config = Config()
-    except ConfigError as e:
-        console.print(f"[bold red]Configuration Error: {e}[/bold red]")
-        sys.exit(1)
+    config = load_config('configs/config.yaml')
+    repo = git.Repo('.')
     
-    analyzer = DiffAnalyzer(config)
-    diffs = analyzer.get_unstaged_diffs()
+    # Get unstaged changes
+    diffs = repo.index.diff(None)
     if not diffs:
         console.print("[bold red]No unstaged changes to analyze.[/bold red]")
-        sys.exit(0)
+        return
 
+    # Display unstaged changes
     console.print("[bold]Unstaged changes for analysis:[/bold]")
-    for file, diff in diffs.items():
-        console.print(Panel(diff, title=file, expand=False))
+    changes = []
+    for diff in diffs:
+        change_type = 'Modified' if diff.change_type == 'M' else diff.change_type
+        changes.append({'path': diff.a_path, 'change_type': change_type})
+        console.print(Panel(str(diff), title=diff.a_path, expand=False))
 
-    grouping = AIGrouping(config)
+    # Group changes and generate commit messages
     with console.status("[bold green]Analyzing changes...[/bold green]"):
-        groups = grouping.group_diffs(diffs)
+        groups = group_changes(changes, config)
+        commit_messages = generate_commit_message(groups, config)
 
-    generator = CommitMessageGenerator(config)
+    # Display analysis results
     table = Table(title="Analysis Results", show_lines=True)
     table.add_column("Group", style="cyan", no_wrap=True)
     table.add_column("Files", style="magenta", overflow="fold")
-    table.add_column("Change Count", style="yellow", justify="right")
     table.add_column("Suggested Commit Message", style="green", overflow="fold")
 
-    for idx, group in enumerate(groups, 1):
-        group['diffs'] = {file: diffs[file] for file in group['files'] if file in diffs}
-        suggested_message = generator.generate_message(group['diffs'])
-        change_count = sum(len(diff.splitlines()) for diff in group['diffs'].values())
+    for idx, commit in enumerate(commit_messages, 1):
         table.add_row(
             f"[bold blue]{idx}[/bold blue]",
-            ", ".join(group['files']),
-            str(change_count),
-            suggested_message
+            ", ".join(commit['files']),
+            commit['message']
         )
 
     console.print(table)
