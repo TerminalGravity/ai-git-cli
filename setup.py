@@ -1,25 +1,31 @@
+import os
 from setuptools import setup, find_packages
+
+# Read the contents of README.md
+this_directory = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(this_directory, 'README.md'), 'r', encoding='utf-8') as fh:
+    long_description = fh.read()
 
 setup(
     name="ai-git-cli",
     version="0.1.0",
-    packages=find_packages(),
+    packages=find_packages(include=['ai_git_cli', 'ai_git_cli.*']),
     include_package_data=True,
     install_requires=[
-        "rich",
-        "pyyaml",
-        "openai",
-        "gitpython",
+        "GitPython>=3.1.0",
+        "openai>=0.27.0",
+        "rich>=12.0.0",
+        "PyYAML>=6.0",
     ],
     entry_points={
         "console_scripts": [
-            "ai-git=ai_git_cli.main:cli_main",
+            "ai-git-cli=ai_git_cli.cli:main",
         ],
     },
     author='Your Name',
     author_email='your.email@example.com',
     description='An AI-powered Git commit message generator and manager.',
-    long_description=open('README.md').read(),
+    long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/yourusername/ai-git-cli',
     classifiers=[
