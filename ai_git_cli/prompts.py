@@ -1,4 +1,5 @@
-```python
+from typing import List, Dict
+
 def create_commit_message_prompt(group: List[Dict], user_feedback: str, commit_style: Dict) -> str:
     files = "\n".join([f"- {change['change_type'].capitalize()} in {change['path']}" for change in group])
     prompt = f"Generate a concise and descriptive Git commit message based on the following changes that {user_feedback}:\n{files}\n\nUse the {commit_style['format']} format."
@@ -13,4 +14,3 @@ def create_grouping_prompt(changes: List[Dict], user_feedback: str, grouping: Di
     if grouping['combine_similar_changes']:
         prompt += " Ensure that similar types of changes are grouped together."
     return prompt
-```

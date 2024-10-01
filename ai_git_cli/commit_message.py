@@ -23,4 +23,3 @@ def generate_commit_message(groups: List[List[Dict]], config: Dict) -> List[Dict
         })
 
     return commit_messages
-```

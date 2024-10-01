@@ -1,8 +1,8 @@
-```python
 from typing import List, Dict
 import json
 import logging
 from ai_git_cli.ai_client import get_ai_client
+from ai_git_cli.prompts import create_grouping_prompt
 
 def group_changes(changes: List[Dict], config: Dict) -> List[List[Dict]]:
     ai_client = get_ai_client(config)
@@ -25,4 +25,3 @@ def group_changes(changes: List[Dict], config: Dict) -> List[List[Dict]]:
     except json.JSONDecodeError:
         logging.error("Failed to decode JSON response for grouping. Falling back to single group.")
         return [changes]
-```

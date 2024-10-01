@@ -1,4 +1,3 @@
-```python
 import os
 import yaml
 from string import Template
@@ -49,4 +48,3 @@ def setup_logging(config):
         logging.basicConfig(level=level, handlers=handlers)
     else:
         logging.basicConfig(level=level, format=log_format)
-```

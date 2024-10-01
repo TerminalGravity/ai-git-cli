@@ -23,4 +23,3 @@ def amend_commit_history(repo_path: str, num_commits: int):
     except subprocess.CalledProcessError as e:
         logging.error(f"Error amending commit history: {e}")
         console.print(f"[bold red]Failed to amend commit history: {e}[/bold red]")
-

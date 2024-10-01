@@ -1,4 +1,3 @@
-```python
 import sys
 import git
 from rich.console import Console
@@ -161,4 +160,3 @@ def cli_main():
 
 if __name__ == "__main__":
     cli_main()
-```
