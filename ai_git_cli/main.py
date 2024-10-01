@@ -1,3 +1,4 @@
+```python
 import sys
 import git
 from rich.console import Console
@@ -8,6 +9,8 @@ from rich.text import Text
 from ai_git_cli.config import load_config
 from ai_git_cli.grouping import group_changes
 from ai_git_cli.commit_message import generate_commit_message
+from ai_git_cli.commit_execution import execute_commits, amend_commit_history
+import argparse
 
 def commit_command(args):
     console = Console()
@@ -76,9 +79,25 @@ def commit_command(args):
 
     # Execute commits
     with console.status("[bold green]Creating commits...[/bold green]"):
-        for commit in commit_messages:
-            repo.index.add(commit['files'])
-            repo.index.commit(commit['message'])
+        execute_commits(commit_messages, config)
+
+    # Amend Commit History if requested
+    amend_choice = Prompt.ask("Do you want to amend the commit history? [y/n]", choices=["y", "n"], default="n").lower()
+    if amend_choice == 'y':
+        while True:
+            user_input = Prompt.ask("How many commits back do you want to amend? [default: 1]", default="1")
+            try:
+                num_commits = int(user_input)
+                if num_commits < 1:
+                    raise ValueError
+                break
+            except ValueError:
+                console.print("[bold red]Please enter a valid positive integer.[/bold red]")
+
+        try:
+            amend_commit_history(repo_path='.', num_commits=num_commits)
+        except Exception as e:
+            console.print(f"[bold red]An error occurred while amending commits: {e}[/bold red]")
 
     console.print("[bold green]Commits created successfully.[/bold green]")
 
@@ -142,3 +161,4 @@ def cli_main():
 
 if __name__ == "__main__":
     cli_main()
+```

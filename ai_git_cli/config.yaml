@@ -1,18 +1,71 @@
-# Configuration file for AI-Git-CLI Tool
+```yaml
+# AI Git Commit Tool Configuration
 
-openai:
-  api_key: YOUR_OPENAI_API_KEY
+# LLM Provider and Model
+ai_provider:
+  name: openai
   model: gpt-4
+  api_key: ${OPENAI_API_KEY}
 
-git:
-  user_name: Your Name
-  user_email: your.email@example.com
+# Commit Message Generation
+commit_style:
+  format: conventional  # Options: conventional, imperative, custom
+  conventional_prefixes:
+    feat: "Features"
+    fix: "Bug Fixes"
+    docs: "Documentation"
+    style: "Code Style"
+    refactor: "Code Refactoring"
+    test: "Tests"
+    chore: "Chores"
+  length: short
+  emoji: false
+  temperature: 0.7
 
-commit_message:
-  template: "{type}: {subject}"
-  types:
-    - Feature
-    - Bug Fix
-    - Refactor
-    - Documentation
-    - Chore
+# Grouping Instructions
+grouping:
+  max_files_per_commit: 5
+  combine_similar_changes: true
+
+# Custom Instructions
+custom_instructions:
+  grouping: "Group changes logically, focusing on related functionality."
+  message_style: "Use concise, descriptive language. Start with a verb in imperative mood."
+  user_feedback: ""
+
+# User Interface Preferences
+user_interface:
+  language: english
+  color_scheme: dark
+
+# Git Integration
+git_integration:
+  install_hook: true
+  hook_type: prepare-commit-msg
+
+# Advanced Settings
+advanced:
+  token_limit: 4000
+
+# Language-Specific Configurations
+language_specific:
+  python:
+    grouping_instructions: "Consider Python best practices and common modules when grouping changes."
+    message_style: "Use PEP 8 compliant language."
+  typescript:
+    grouping_instructions: "Group changes based on TypeScript modules and service layers."
+    message_style: "Use concise and descriptive language suitable for TypeScript projects."
+  javascript:
+    grouping_instructions: "Group changes based on JavaScript modules and common frameworks."
+    message_style: "Use concise and descriptive language suitable for JavaScript projects."
+  java:
+    grouping_instructions: "Group changes based on Java classes and modules."
+    message_style: "Use clear and descriptive language suitable for Java projects."
+  # Add more languages as needed
+
+# Logging
+logging:
+  level: INFO
+  file: ai_git_commit.log
+  enable_console: true
+```

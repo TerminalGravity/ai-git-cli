@@ -1,40 +1,27 @@
-import openai
+```python
 from typing import List, Dict
+from ai_git_cli.ai_client import get_ai_client
+from ai_git_cli.config import load_config
+from ai_git_cli.prompts import create_commit_message_prompt
 
 def generate_commit_message(groups: List[List[Dict]], config: Dict) -> List[Dict]:
-    openai.api_key = config['ai_provider']['api_key']
-    commit_template = config['commit_style']['format']
-    commit_types = config['commit_style']['conventional_prefixes']
+    ai_client = get_ai_client(config)
     temperature = config['commit_style'].get('temperature', 0.7)
+    user_feedback = config['custom_instructions'].get('user_feedback', "")
 
+    commit_style = config['commit_style']
     commit_messages = []
-
     for group in groups:
-        files = [change['path'] for change in group]
-        types = list(set([change['change_type'] for change in group]))
-
-        prompt = f"""Generate a concise and descriptive Git commit message based on the following changes:
-
-{chr(10).join([f"- {change['change_type']} in {change['path']}" for change in group])}
-
-Use the {commit_template} format.
-{"Use one of these prefixes: " + ", ".join(commit_types.keys()) if commit_template == "conventional" else ""}
-"""
-
-        response = openai.ChatCompletion.create(
-            model=config['ai_provider']['model'],
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant that generates Git commit messages."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=temperature,
-        )
-
-        message = response.choices[0].message.content.strip()
-
+        prompt = create_commit_message_prompt(group, user_feedback, commit_style)
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant that generates Git commit messages."},
+            {"role": "user", "content": prompt}
+        ]
+        message = ai_client.get_response(messages, temperature=temperature)
         commit_messages.append({
             'message': message,
-            'files': files
+            'files': [change['path'] for change in group]
         })
 
     return commit_messages
+```
