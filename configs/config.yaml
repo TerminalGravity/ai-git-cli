@@ -67,3 +67,8 @@ logging:
   level: INFO
   file: ai_git_commit.log
   enable_console: true
+
+# Git User Configuration
+git:
+  user_name: "TerminalGravity"
+  user_email: "jrinnfelke@gmail.com"
