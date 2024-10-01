@@ -3,7 +3,7 @@
 # LLM Provider and Model
 ai_provider:
   name: openai
-  model: gpt-4
+  model: gpt-4o-mini
   api_key: ${OPENAI_API_KEY}
 
 # Commit Message Generation
@@ -30,6 +30,7 @@ grouping:
 custom_instructions:
   grouping: "Group changes logically, focusing on related functionality."
   message_style: "Use concise, descriptive language. Start with a verb in imperative mood."
+  user_feedback: ""
 
 # User Interface Preferences
 user_interface:

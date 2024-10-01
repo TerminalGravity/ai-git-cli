@@ -2,10 +2,13 @@ from typing import List, Dict
 
 def create_commit_message_prompt(group: List[Dict], user_feedback: str, commit_style: Dict) -> str:
     files = "\n".join([f"- {change['change_type'].capitalize()} in {change['path']}" for change in group])
-    prompt = f"Generate a concise and descriptive Git commit message based on the following changes that {user_feedback}:\n{files}\n\nUse the {commit_style['format']} format."
+    prompt = f"""Generate a concise and descriptive Git commit message based on the following changes that {user_feedback}:
+{files}
+
+Use the {commit_style['format']} format. Provide the commit message in JSON format with 'type' and 'subject' fields."""
     if commit_style['format'] == "conventional":
         prefixes = ", ".join(commit_style['conventional_prefixes'].keys())
-        prompt += f" Use one of these prefixes: {prefixes}."
+        prompt += f" Use one of these prefixes for the 'type' field: {prefixes}."
     return prompt
 
 def create_grouping_prompt(changes: List[Dict], user_feedback: str, grouping: Dict) -> str:

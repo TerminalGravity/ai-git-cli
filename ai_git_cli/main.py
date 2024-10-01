@@ -13,45 +13,35 @@ import argparse
 
 def commit_command(args):
     console = Console()
-    config = load_config('configs/config.yaml')
+    config_path = args.config if hasattr(args, 'config') and args.config else 'configs/config.yaml'
+    config = load_config(config_path)
     repo = git.Repo('.')
     
     # Get unstaged changes
     diffs = repo.index.diff(None)
-    if not diffs:
-        console.print("[bold red]No unstaged changes to commit.[/bold red]")
-        return
-
+    
     # Display unstaged changes
-    console.print("[bold]Unstaged changes:[/bold]")
+    console.print("[bold]Unstaged changes for analysis:[/bold]")
     changes = []
     for diff in diffs:
         change_type = 'Modified' if diff.change_type == 'M' else diff.change_type
         changes.append({'path': diff.a_path, 'change_type': change_type})
-        console.print(Panel(str(diff), title=diff.a_path, expand=False))
+        console.print(f"[cyan]{change_type}[/cyan]: {diff.a_path}")
 
-    # Group changes
-    with console.status("[bold green]Analyzing and grouping changes...[/bold green]"):
-        groups = group_changes(changes, config)
+    if not changes:
+        console.print("[yellow]No unstaged changes found.[/yellow]")
+        return
+
+    # Analyze and group changes
+    console.print("[bold green]Analyzing and grouping changes...[/bold green]")
+    groups = group_changes(changes, config)
 
     # Generate commit messages
-    with console.status("[bold green]Generating commit messages...[/bold green]"):
-        commit_messages = generate_commit_message(groups, config)
+    console.print("[bold green]Generating commit messages...[/bold green]")
+    commit_messages = generate_commit_message(groups, config)
 
-    # Display proposed commits
-    table = Table(title="Proposed Commits", show_lines=True)
-    table.add_column("Group", style="cyan", no_wrap=True)
-    table.add_column("Files", style="magenta", overflow="fold")
-    table.add_column("Commit Message", style="green", overflow="fold")
-
-    for idx, commit in enumerate(commit_messages, 1):
-        table.add_row(
-            f"[bold blue]{idx}[/bold blue]",
-            ", ".join(commit['files']),
-            commit['message']
-        )
-
-    console.print(table)
+    # Display analysis results
+    display_commit_messages(console, commit_messages)
 
     # Interactive Review
     for commit in commit_messages.copy():
@@ -117,7 +107,7 @@ def analyze_command(args):
     for diff in diffs:
         change_type = 'Modified' if diff.change_type == 'M' else diff.change_type
         changes.append({'path': diff.a_path, 'change_type': change_type})
-        console.print(Panel(str(diff), title=diff.a_path, expand=False))
+        console.print(f"[cyan]{change_type}[/cyan]: {diff.a_path}")
 
     # Group changes and generate commit messages
     with console.status("[bold green]Analyzing changes...[/bold green]"):
@@ -126,6 +116,27 @@ def analyze_command(args):
 
     # Display analysis results
     table = Table(title="Analysis Results", show_lines=True)
+    table.add_column("Group", style="cyan", no_wrap=True)
+    table.add_column("Files", style="magenta", overflow="fold")
+    table.add_column("Suggested Commit Message", style="green", overflow="fold")
+
+    for idx, commit in enumerate(commit_messages, 1):
+        table.add_row(
+            f"[bold blue]{idx}[/bold blue]",
+            ", ".join(commit['files']),
+            commit['message']
+        )
+
+    console.print(table)
+
+    # Add confirmation step
+    confirm = Prompt.ask("Do you want to proceed with these commits?", choices=["y", "n"], default="y")
+    if confirm.lower() != "y":
+        console.print("[bold yellow]Commit process cancelled.[/bold yellow]")
+        return
+
+def display_commit_messages(console, commit_messages):
+    table = Table(title="Proposed Commits", show_lines=True)
     table.add_column("Group", style="cyan", no_wrap=True)
     table.add_column("Files", style="magenta", overflow="fold")
     table.add_column("Suggested Commit Message", style="green", overflow="fold")
@@ -150,6 +161,7 @@ def cli_main():
 
     commit_parser = subparsers.add_parser('commit', help='Split and commit changes with AI-generated messages')
     commit_parser.add_argument('--dry-run', action='store_true', help='Preview commits without applying them')
+    commit_parser.add_argument('--config', type=str, help='Path to the configuration file')
     commit_parser.set_defaults(func=commit_command)
 
     args = parser.parse_args()

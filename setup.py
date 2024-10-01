@@ -13,13 +13,14 @@ setup(
     include_package_data=True,
     install_requires=[
         "GitPython>=3.1.0",
-        "openai>=0.27.0",
+        "openai>=1.0.0",
         "rich>=12.0.0",
         "PyYAML>=6.0",
+        "pydantic>=1.10.0",
     ],
     entry_points={
         "console_scripts": [
-            "ai-git-cli=ai_git_cli.cli:main",
+            "ai-git-cli=ai_git_cli.main:cli_main",
         ],
     },
     author='Your Name',
