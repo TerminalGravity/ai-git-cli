@@ -21,9 +21,25 @@ def execute_commits(commit_messages: List[Dict], config: Dict):
 def amend_commit_history(repo_path: str, num_commits: int):
     console = Console()
     try:
-        # Example: Rebase interactively to amend commit messages
-        subprocess.run(['git', 'rebase', '-i', f'HEAD~{num_commits}'], check=True, cwd=repo_path)
-        console.print("[bold green]Successfully amended the commit history.[/bold green]")
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Error amending commit history: {e}")
-        console.print(f"[bold red]Failed to amend commit history: {e}[/bold red]")
+        repo = git.Repo(repo_path)
+        
+        # Start interactive rebase
+        repo.git.rebase('-i', f'HEAD~{num_commits}')
+        
+        console.print("[bold green]Rebase completed successfully.[/bold green]")
+        console.print("Please review and save the changes in your default text editor.")
+        
+        # Wait for user to finish the rebase
+        input("Press Enter when you have finished the rebase...")
+        
+        # Check if rebase is still in progress
+        if repo.is_rebase_in_progress():
+            console.print("[yellow]Rebase is still in progress. Please complete it manually.[/yellow]")
+        else:
+            console.print("[bold green]Rebase completed successfully.[/bold green]")
+    
+    except git.GitCommandError as e:
+        console.print(f"[bold red]An error occurred during the rebase: {e}[/bold red]")
+        console.print("You may need to resolve conflicts or abort the rebase manually.")
+    except Exception as e:
+        console.print(f"[bold red]An unexpected error occurred: {e}[/bold red]")

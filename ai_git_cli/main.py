@@ -79,21 +79,46 @@ def commit_command(args):
             console.print(f"[bold red]Git error: {str(e)}[/bold red]")
 
         # Amend Commit History if requested
-        amend_choice = Prompt.ask("Do you want to amend the commit history? [y/n]", choices=["y", "n"], default="n").lower()
+        amend_choice = Prompt.ask("Do you want to amend the commit history?", choices=["y", "n"], default="n").lower()
         if amend_choice == 'y':
-            while True:
-                user_input = Prompt.ask("How many commits back do you want to amend? [default: 1]", default="1")
-                try:
-                    num_commits = int(user_input)
-                    if num_commits < 1:
-                        raise ValueError
-                    break
-                except ValueError:
-                    console.print("[bold red]Please enter a valid positive integer.[/bold red]")
-
             try:
-                amend_commit_history(repo_path='.', num_commits=num_commits)
-            except Exception as e:
+                # Get recent commits
+                recent_commits = repo.git.log('--oneline', '-n', '10').splitlines()
+                
+                # Display recent commits
+                console.print("\n[bold]Recent commits:[/bold]")
+                for i, commit in enumerate(recent_commits, 1):
+                    console.print(f"{i}. {commit}")
+                
+                # Ask user to select commits to amend
+                while True:
+                    commit_indices = Prompt.ask("Enter the numbers of the commits you want to amend (comma-separated, or 'a' for all)")
+                    if commit_indices.lower() == 'a':
+                        num_commits = len(recent_commits)
+                        break
+                    try:
+                        indices = [int(i.strip()) for i in commit_indices.split(',')]
+                        if all(1 <= i <= len(recent_commits) for i in indices):
+                            num_commits = max(indices)
+                            break
+                        else:
+                            console.print("[bold red]Invalid input. Please enter valid commit numbers.[/bold red]")
+                    except ValueError:
+                        console.print("[bold red]Invalid input. Please enter numbers separated by commas.[/bold red]")
+                
+                # Show preview of changes
+                console.print("\n[bold]Preview of changes:[/bold]")
+                preview = repo.git.log(f'-n {num_commits}', '--stat')
+                console.print(preview)
+                
+                # Confirm changes
+                confirm = Prompt.ask("Do you want to proceed with these changes?", choices=["y", "n"], default="n").lower()
+                if confirm == 'y':
+                    amend_commit_history(repo_path='.', num_commits=num_commits)
+                    console.print("[bold green]Successfully amended the commit history.[/bold green]")
+                else:
+                    console.print("[yellow]Amend process aborted.[/yellow]")
+            except git.GitCommandError as e:
                 console.print(f"[bold red]An error occurred while amending commits: {e}[/bold red]")
     except Exception as e:
         console.print(f"[bold red]An unexpected error occurred: {str(e)}[/bold red]")

@@ -15,7 +15,11 @@ import re
 
 MODEL = "o1-mini"
 # Initialize OpenAI client
-client = OpenAI(api_key="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")
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Updated CREATE_SYSTEM_PROMPT to request code blocks instead of JSON
 CREATE_SYSTEM_PROMPT = """You are an advanced, creative AI engineer designed to create files and folders based on user instructions. Your primary objective is to generate the content of the files to be created as code blocks. Each code block should specify whether it's a file or folder, along with its path.
