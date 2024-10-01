@@ -1,4 +1,3 @@
-```python
 from typing import List, Dict
 from ai_git_cli.ai_client import get_ai_client
 from ai_git_cli.config import load_config

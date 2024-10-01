@@ -1,4 +1,3 @@
-```python
 import openai
 import logging
 import time
@@ -45,4 +44,3 @@ def get_ai_client(config: Dict) -> BaseAIClient:
         )
     else:
         raise ValueError(f"Unsupported AI provider: {provider}")
-```
