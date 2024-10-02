@@ -71,3 +71,43 @@ Do you want to amend the commit history? [y/n]: n
 ```
 
 This feature empowers you to guide the AI, ensuring that the generated commits are aligned with your project's specific requirements and your personal or team preferences.
+
+
+ai-git-cli/
+├── ai_git_cli/
+│   ├── __init__.py
+│   ├── main.py
+│   ├── commands/
+│   │   ├── __init__.py
+│   │   ├── commit.py
+│   │   └── analyze.py
+│   ├── config.py
+│   ├── github/
+│   │   ├── __init__.py
+│   │   └── client.py
+│   ├── prompts.py
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   ├── logger.py
+│   │   └── git_helper.py
+│   ├── commit_execution.py
+│   ├── grouping.py
+│   └── commit_message.py
+├── configs/
+│   ├── config.yaml
+│   └── default_config.yaml
+├── tests/
+│   ├── __init__.py
+│   ├── test_cli.py
+│   └── test_commands.py
+├── examples/
+│   └── example_usage.md
+├── docs/
+│   ├── CHANGELOG.md
+│   └── CONTRIBUTING.md
+├── LICENSE
+├── MANIFEST.in
+├── README.md
+├── setup.py
+├── requirements.txt
+└── .gitignore

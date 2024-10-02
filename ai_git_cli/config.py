@@ -1,14 +1,65 @@
+from pydantic import BaseModel, Field, ValidationError
+from typing import Dict, Optional
 import os
 import yaml
 from string import Template
-import logging
 from dotenv import load_dotenv
+import logging
+from rich.console import Console
 
-def load_config(config_path: str = 'configs/config.yaml') -> dict:
+class AIProviderConfig(BaseModel):
+    name: str
+    model: str
+    api_key: str
+
+class CommitStyleConfig(BaseModel):
+    format: str
+    conventional_prefixes: Dict[str, str]
+    length: str
+    emoji: bool
+    temperature: float
+
+class GroupingConfig(BaseModel):
+    max_files_per_commit: int
+    combine_similar_changes: bool
+
+class CustomInstructionsConfig(BaseModel):
+    grouping: str
+    message_style: str
+    user_feedback: Optional[str] = ""
+
+class UserInterfaceConfig(BaseModel):
+    language: str
+    color_scheme: str
+
+class GitIntegrationConfig(BaseModel):
+    install_hook: bool
+    hook_type: str
+
+class AdvancedSettingsConfig(BaseModel):
+    token_limit: int
+
+class Config(BaseModel):
+    ai_provider: AIProviderConfig
+    commit_style: CommitStyleConfig
+    grouping: GroupingConfig
+    custom_instructions: CustomInstructionsConfig
+    user_interface: UserInterfaceConfig
+    git_integration: GitIntegrationConfig
+    advanced: AdvancedSettingsConfig
+    logging: Optional[Dict[str, str]] = None
+
+def load_config(config_path: str = 'configs/config.yaml') -> Config:
     load_dotenv()  # Load environment variables from .env file
+    console = Console()
     with open(config_path, 'r') as file:
-        config = yaml.safe_load(file)
-    config = substitute_env_variables(config)
+        config_raw = yaml.safe_load(file)
+    config_raw = substitute_env_variables(config_raw)
+    try:
+        config = Config(**config_raw)
+    except ValidationError as e:
+        console.print(f"[bold red]Configuration validation error: {e}[/bold red]")
+        raise e
     setup_logging(config)
     return config
 
@@ -26,8 +77,13 @@ def substitute_env_variables(config):
     else:
         return config
 
-def setup_logging(config):
-    logging_config = config.get('logging', {})
+def setup_logging(config: Config):
+    logging_config = config.logging
+    if not logging_config:
+        logging_config = {
+            'level': 'INFO',
+            'file': 'ai_git_commit.log',
+            'enable_console': True
     level = getattr(logging, logging_config.get('level', 'INFO').upper(), logging.INFO)
     log_format = '%(asctime)s - %(levelname)s - %(message)s'
     
